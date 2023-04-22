@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "url.h"
 
 /**
@@ -49,8 +50,7 @@ int parse_url(char* url, url_info *info)
 	 * To be completed:
 	 * 	 store info->protocol
 	 */
-	info->protocol = (char *) malloc(strlen(protocol)+1);
-	strcpy(info->protocol, protocol);
+	info->protocol = protocol;
 
 	/*
      * To be completed:
@@ -75,11 +75,9 @@ int parse_url(char* url, url_info *info)
 	}
 	*slash = '\0';
 
-	info->host = (char *) malloc(strlen(host_name_path)+1);
 	info->host = host_name_path;
 
 	char *path = slash + 1;
-	info->path = (char *) malloc(strlen(path)+1);
 	info->path = path;
 
 	/*

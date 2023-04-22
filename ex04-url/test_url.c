@@ -33,7 +33,6 @@ int main(int argc, char* argv[])
 	}
 
 	print_url_info(&info);
-	free(info.host); free(info.protocol); free(info.path); 
 	return 0; // main returning 0 means success !
 }
 
