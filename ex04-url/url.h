@@ -30,8 +30,6 @@ int parse_url(char* url, url_info *info);
 int is_number(char *str);
 
 static const char P_HTTP[] = "http";
-#define SLASH 47
-#define COLON 58
 
 // parse_url error codes
 #define PARSE_URL_OK 0
