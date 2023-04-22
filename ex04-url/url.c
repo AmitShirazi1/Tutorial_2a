@@ -34,7 +34,7 @@ int parse_url(char* url, url_info *info)
 
 	column_slash_slash = strstr(url, "://");
 	// it searches :// in the string. if exists,
-	//return the pointer to the first char of the match string
+	// returns the pointer to the first char of the match string
 
 	if(column_slash_slash != NULL){ //protocol type exists
 		*column_slash_slash = '\0'; //end of the protocol type
@@ -49,11 +49,16 @@ int parse_url(char* url, url_info *info)
 	 * To be completed:
 	 * 	 store info->protocol
 	 */
+	info->protocol = (char *) malloc(strlen(protocol)+1);
+	strcpy(info->protocol, protocol);
 
 	/*
      * To be completed:
 	 * 	 Return an error (PARSE_URL_PROTOCOL_UNKNOWN) if the protocol is not 'http' using strcmp.
 	 */
+	if ( (strcmp(protocol, "http") != 0) && (strcmp(protocol, "https") != 0) ) {
+		return PARSE_URL_PROTOCOL_UNKNOWN;
+	}
 
 	/*
 	 * To be completed:
@@ -64,6 +69,18 @@ int parse_url(char* url, url_info *info)
 	 * 	 Note: The path is stored WITHOUT the first '/'.
 	 * 	       It simplifies this function, but I'll let you understand how. :-)
 	 */
+	char *slash = strchr(host_name_path, SLASH);
+	if (slash == NULL) {
+		return PARSE_URL_NO_SLASH;
+	}
+	*slash = '\0';
+
+	info->host = (char *) malloc(strlen(host_name_path)+1);
+	strcpy(info->host, host_name_path);
+
+	char *path = slash + 1;
+	info->path = (char *) malloc(strlen(path)+1);
+	strcpy(info->path, path);
 
 	/*
 	 * To be completed:
@@ -72,6 +89,21 @@ int parse_url(char* url, url_info *info)
 	 * 	 If ':' is found, split the string and use sscanf to parse the port.
 	 * 	 Return an error if the port is not a number, and store it otherwise.
 	 */
+	char *colon = strchr(host_name_path, COLON);
+	if (colon == NULL) {
+		info->port = 80;
+	}
+	else {
+		*colon = '\0';
+		char *port = colon + 1;
+		if (is_number(port)) {
+			sscanf(port, "%d", info->port);
+		}
+		else {
+			return PARSE_URL_INVALID_PORT;
+		}
+	}
+	strcpy(info->host, host_name_path);
 
 	// If everything went well, return 0.
 	return 0;
@@ -86,4 +118,18 @@ void print_url_info(url_info *info){
 	printf("Host name:\t%s\n", info->host);
 	printf("Port No.:\t%d\n", info->port);
 	printf("Path:\t\t/%s\n", info->path);
+}
+
+/**
+ * Checks if a string is a number, and if it is returns 1, o.w 0.
+ * The function is inspired by a Stack Overflow page: "https://stackoverflow.com/questions/17292545/how-to-check-if-the-input-is-a-number-or-not-in-c"
+*/
+int is_number(char *str) {
+	int length = strlen(str);
+	for (int i=0; i < length; i++) {
+		if (!isdigit(str[i])) {
+			return 0;
+		}
+	}
+	return 1;
 }
