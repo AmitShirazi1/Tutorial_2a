@@ -28,22 +28,22 @@ int main(int argc, char* argv[]) {
     url_info info;
     const char * file_name = "received_page";
     if (argc < 2) {
-	fprintf(stderr, "Missing argument. Please enter URL.\n");
-	return 1;
+        fprintf(stderr, "Missing argument. Please enter URL.\n");
+        return 1;
     }
 
     char *url = argv[1];
 
     // Get optional file name
     if (argc > 2) {
-	file_name = argv[2];
+	    file_name = argv[2];
     }
 
     // First parse the URL
     int ret = parse_url(url, &info);
     if (ret) {
-	fprintf(stderr, "Could not parse URL '%s': %s\n", url, parse_url_errstr[ret]);
-	return 2;
+        fprintf(stderr, "Could not parse URL '%s': %s\n", url, parse_url_errstr[ret]);
+        return 2;
     }
 
     //If needed for debug
@@ -54,14 +54,14 @@ int main(int argc, char* argv[]) {
 
     ret = download_page(&info, &reply);
     if (ret) {
-	return 3;
+	    return 3;
     }
 
     // Now parse the responses
     char *response = read_http_reply(&reply);
     if (response == NULL) {
-	fprintf(stderr, "Could not parse http reply\n");
-	return 4;
+        fprintf(stderr, "Could not parse http reply\n");
+        return 4;
     }
 
     // Write response to a file
@@ -88,7 +88,11 @@ int download_page(url_info *info, http_reply *reply) {
      *     Use getaddrinfo and implement a function that works for both IPv4 and IPv6.
      *
      */
+    struct addrinfo hints, *addresses;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
 
+    int ret = getaddrinfo(info->host, info->port, hints, &addresses);
 
 
     /*
