@@ -23,6 +23,7 @@
 
 #include "url.h"
 #include "wgetX.h"
+#define MAX_POSSIBLE_SIZE 50
 
 int main(int argc, char* argv[]) {
     url_info info;
@@ -91,8 +92,10 @@ int download_page(url_info *info, http_reply *reply) {
     struct addrinfo hints, *addresses;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
-
-    int ret = getaddrinfo(info->host, info->port, hints, &addresses);
+    
+    char port[MAX_POSSIBLE_SIZE];
+    snprintf(port, MAX_POSSIBLE_SIZE, "%d", info->port);
+    int ret = getaddrinfo(info->host, port, &hints, &addresses);
 
 
     /*
