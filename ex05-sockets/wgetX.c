@@ -92,10 +92,14 @@ int download_page(url_info *info, http_reply *reply) {
     struct addrinfo hints, *addresses;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
     
     char port[MAX_POSSIBLE_SIZE];
     snprintf(port, MAX_POSSIBLE_SIZE, "%d", info->port);
-    int ret = getaddrinfo(info->host, port, &hints, &addresses);
+    int is_error = getaddrinfo(info->host, port, &hints, &addresses);
+    if (is_error) {
+        fprintf(stderr, "Failed to resolve hostname to IP address");
+    }
 
 
     /*
@@ -113,8 +117,23 @@ int download_page(url_info *info, http_reply *reply) {
      *   Note4: Free the request buffer returned by http_get_request by calling the 'free' function.
      *
      */
+    int sc; //File descriptor
+    if (!isnt_error) {  // Inspired from https://linuxhint.com/c-getaddrinfo-function-usage/
+        unsigned char ip[MAX_POSSIBLE_SIZE]= "";
+        inet_ntop(AF_UNSPEC, &addresses->ai_addr->sa_data[2], ip, sizeof(ip));
+        printf("IP address: %s\n", ip);
 
+        for (struct addrinfo *p = addresses; p!=NULL; p = p->ai_next) {
+            sc = socket(p->ai_family, p->ai_socktype, 0);
 
+            if (connect(sc, p->ai_addr, p->ai_addrlen)) {
+                //Because connect() expects a pointer to a struct sockaddr, we'll give it p->ai_addr.
+                fprintf(stderr, "Could not connect: %s\n", strerror(errno));
+                return -1;
+            }
+        }
+    }
+    
 
     /*
      * To be completed:
