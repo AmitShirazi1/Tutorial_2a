@@ -99,6 +99,7 @@ int download_page(url_info *info, http_reply *reply) {
     int is_error = getaddrinfo(info->host, port, &hints, &addresses);
     if (is_error) {
         fprintf(stderr, "Failed to resolve hostname to IP address");
+        return -1;
     }
 
 
@@ -118,20 +119,48 @@ int download_page(url_info *info, http_reply *reply) {
      *
      */
     int sc; //File descriptor
-    if (!isnt_error) {  // Inspired from https://linuxhint.com/c-getaddrinfo-function-usage/
-        unsigned char ip[MAX_POSSIBLE_SIZE]= "";
-        inet_ntop(AF_UNSPEC, &addresses->ai_addr->sa_data[2], ip, sizeof(ip));
-        printf("IP address: %s\n", ip);
-
-        for (struct addrinfo *p = addresses; p!=NULL; p = p->ai_next) {
-            sc = socket(p->ai_family, p->ai_socktype, 0);
-
-            if (connect(sc, p->ai_addr, p->ai_addrlen)) {
-                //Because connect() expects a pointer to a struct sockaddr, we'll give it p->ai_addr.
-                fprintf(stderr, "Could not connect: %s\n", strerror(errno));
-                return -1;
-            }
+    //Inspired from https://linuxhint.com/c-getaddrinfo-function-usage/
+    unsigned char ip[MAX_POSSIBLE_SIZE]= "";
+    inet_ntop(AF_UNSPEC, &addresses->ai_addr->sa_data[2], ip, sizeof(ip));
+    printf("IP address: %s\n", ip);
+    
+    //Source: https://man7.org/linux/man-pages/man3/getaddrinfo.3.html
+    struct addrinfo *p;
+    for (p = addresses; p!=NULL; p = p->ai_next) {
+        sc = socket(p->ai_family, p->ai_socktype, 0);
+        if (sc == -1)
+            continue;
+        if (bind(sc, (struct sockaddr*) p->ai_addr, p->ai_addrlen)) {
+            break; //Finally connected to an address, yay!
         }
+        close(sc);
+    }
+    if (p == NULL) { //If no address in the linked list has successfully binded.
+        fprintf(stderr, "Could not bind socket\n");
+        return -2;
+    }
+    freeaddrinfo(addresses);
+
+    if(listen(sc, 10) == -1) {
+        fprintf(stderr, "Could not listen: %s\n", strerror(errno));
+        return -3;
+    }
+
+    int rec_sc; //File descriptor
+    char *send_buff;
+    while(1) {
+        rec_sc = accept(sc, (struct sockaddr*)NULL ,NULL);
+        send_buff = http_get_request(info);
+        if (write(rec_sc, send_buff, strlen(send_buff)) < 0) {
+            fprintf(stderr, "Could not write: %s\n", strerror(errno));
+            return -4;
+        }
+        if (shutdown(rec_sc, SHUT_WR) < 0) {
+            fprintf(stderr, "Could not shutdown connection: %s\n", strerror(errno));
+            return -5;
+        }
+        free(send_buff);
+        close(rec_sc);
     }
     
 
