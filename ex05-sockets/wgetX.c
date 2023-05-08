@@ -24,6 +24,7 @@
 #include "url.h"
 #include "wgetX.h"
 #define MAX_POSSIBLE_SIZE 50
+#define DEFAULT_BUFFER_SIZE 1024
 
 int main(int argc, char* argv[]) {
     url_info info;
@@ -160,10 +161,6 @@ int download_page(url_info *info, http_reply *reply) {
             return -5;
         }
         free(send_buff);
-        close(rec_sc);
-    }
-    
-
     /*
      * To be completed:
      *   Now you will need to read the response from the server.
@@ -185,9 +182,33 @@ int download_page(url_info *info, http_reply *reply) {
      *
      *
      */
+        char rec_buffer[DEFAULT_BUFFER_SIZE];
+        int total_size, buff_size = recv(sc, rec_buffer, DEFAULT_BUFFER_SIZE, 0);
+        if (buff_size < 0) {
+            fprintf(stderr, "recv returned error: %s\n", strerror(errno));
+            return -6;
+        }
+        total_size = buff_size;
+        reply->reply_buffer = (char *) malloc(total_size+1);
+        reply->reply_buffer = rec_buffer;
 
+        while (buff_size > 0) {
+            buff_size = recv(sc, rec_buffer, DEFAULT_BUFFER_SIZE, 0);
+            if (buff_size < 0) {
+                fprintf(stderr, "recv returned error: %s\n", strerror(errno));
+                return -6;
+            }
+            reply->reply_buffer = (char *) realloc(reply->reply_buffer, total_size+buff_size+1);
+            reply->reply_buffer+total_size = rec_buffer;
+            total_size += buff_size;
+        }
+        reply->reply_buffer_length = total_size;
+        reply->reply_buffer+total_size = '\0';
 
+        close(rec_sc);
+    }
 
+    // Remember to free the malloc and realloc!
     return 0;
 }
 
@@ -212,10 +233,10 @@ char *next_line(char *buff, int len) {
 
     char *last = buff + len - 1;
     while (buff != last) {
-	if (*buff == '\r' && *(buff+1) == '\n') {
-	    return buff;
-	}
-	buff++;
+        if (*buff == '\r' && *(buff+1) == '\n') {
+            return buff;
+        }
+        buff++;
     }
     return NULL;
 }
@@ -225,8 +246,8 @@ char *read_http_reply(struct http_reply *reply) {
     // Let's first isolate the first line of the reply
     char *status_line = next_line(reply->reply_buffer, reply->reply_buffer_length);
     if (status_line == NULL) {
-	fprintf(stderr, "Could not find status\n");
-	return NULL;
+        fprintf(stderr, "Could not find status\n");
+        return NULL;
     }
     *status_line = '\0'; // Make the first line is a null-terminated string
 
@@ -235,13 +256,13 @@ char *read_http_reply(struct http_reply *reply) {
     double http_version;
     int rv = sscanf(reply->reply_buffer, "HTTP/%lf %d", &http_version, &status);
     if (rv != 2) {
-	fprintf(stderr, "Could not parse http response first line (rv=%d, %s)\n", rv, reply->reply_buffer);
-	return NULL;
+        fprintf(stderr, "Could not parse http response first line (rv=%d, %s)\n", rv, reply->reply_buffer);
+        return NULL;
     }
 
     if (status != 200) {
-	fprintf(stderr, "Server returned status %d (should be 200)\n", status);
-	return NULL;
+        fprintf(stderr, "Server returned status %d (should be 200)\n", status);
+        return NULL;
     }
 
     char *buf = status_line + 2;
@@ -262,8 +283,18 @@ char *read_http_reply(struct http_reply *reply) {
      *     If you feel like having a real challenge, go on and implement HTTP redirect support for your client.
      *
      */
+    int remaining_len = buf - reply->reply_buffer;
+    while (!(*buf == '\r' && *(buf+1) == '\n')) {
+        status_line = next_line(buf, remaining_len);
+        if (status_line == NULL) {
+            fprintf(stderr, "Could not find status\n");
+            return NULL;
+        }
+        *status_line = '\0';
 
-
+        buf = status_line + 2;
+        remaining_len -= buf;
+    }
 
 
     return buf;
