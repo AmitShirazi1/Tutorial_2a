@@ -167,7 +167,7 @@ int download_page(url_info *info, http_reply *reply) {
     /*
      * To be completed:
      *   Now you will need to read the response from the server.
-     *   The response must be stored in a buffer allocated with malloc, and its address must be save in reply->reply_buffer.
+     *   The response must be stored in a buffer allocated with malloc, and its address must be saved in reply->reply_buffer.
      *   The length of the reply (not the length of the buffer), must be saved in reply->reply_buffer_length.
      *
      *   Important: calling recv only once might only give you a fragment of the response.
