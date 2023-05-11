@@ -25,6 +25,7 @@
 #include "wgetX.h"
 #define MAX_POSSIBLE_SIZE 50
 #define DEFAULT_BUFFER_SIZE 1024
+// #include <arpa/inet.h>
 
 int main(int argc, char* argv[]) {
     url_info info;
@@ -118,11 +119,11 @@ int download_page(url_info *info, http_reply *reply) {
      *   Note4: Free the request buffer returned by http_get_request by calling the 'free' function.
      *
      */
-    int sc; //File descriptor
-    //Inspired from https://linuxhint.com/c-getaddrinfo-function-usage/
-    unsigned char ip[MAX_POSSIBLE_SIZE]= "";
-    inet_ntop(AF_UNSPEC, &addresses->ai_addr->sa_data[2], ip, sizeof(ip));
-    printf("IP address: %s\n", ip);
+    // int sc; //File descriptor
+    // //Inspired from https://linuxhint.com/c-getaddrinfo-function-usage/
+    // unsigned char ip[MAX_POSSIBLE_SIZE]= "";
+    // inet_ntop(AF_UNSPEC, &addresses->ai_addr->sa_data[2], ip, sizeof(ip));
+    // printf("IP address: %s\n", ip);
     
     //Source: https://man7.org/linux/man-pages/man3/getaddrinfo.3.html
     struct addrinfo *p;
