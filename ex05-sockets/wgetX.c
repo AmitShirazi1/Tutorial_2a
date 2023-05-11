@@ -208,7 +208,7 @@ int download_page(url_info *info, http_reply *reply) {
         close(rec_sc);
     }
 
-    // Remember to free the malloc and realloc!
+    // TODO: Remember to free the malloc and realloc!
     return 0;
 }
 
@@ -283,7 +283,7 @@ char *read_http_reply(struct http_reply *reply) {
      *     If you feel like having a real challenge, go on and implement HTTP redirect support for your client.
      *
      */
-    int remaining_len = buf - reply->reply_buffer;
+    int remaining_len = reply->reply_buffer_length - (buf - reply->reply_buffer);
     while (!(*buf == '\r' && *(buf+1) == '\n')) {
         status_line = next_line(buf, remaining_len);
         if (status_line == NULL) {
@@ -292,10 +292,10 @@ char *read_http_reply(struct http_reply *reply) {
         }
         *status_line = '\0';
 
+        remaining_len -= (status_line + 2 - buf);
         buf = status_line + 2;
-        remaining_len -= buf;
     }
-
+    buf+=2;
 
     return buf;
 }
