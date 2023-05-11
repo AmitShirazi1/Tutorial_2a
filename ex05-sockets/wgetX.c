@@ -78,7 +78,6 @@ int main(int argc, char* argv[]) {
 }
 
 int download_page(url_info *info, http_reply *reply) {
-
     /*
      * To be completed:
      *   You will first need to resolve the hostname into an IP address.
@@ -208,15 +207,22 @@ int download_page(url_info *info, http_reply *reply) {
         close(rec_sc);
     }
 
-    // TODO: Remember to free the malloc and realloc!
     return 0;
 }
 
-void write_data(const char *path, const char * data, int len) {
+void write_data(const char *path, const char *data, int len) {
     /*
      * To be completed:
      *   Use fopen, fwrite and fclose functions.
      */
+    FILE *file = fopen(path, 'w');
+    if (file == NULL) {
+        fprintf(stderr, "Could not open file: %s\n", strerror(errno));
+    }
+    if (fwrite(data , 1 , len , file) < len){
+        fprintf(stderr, "Could not write data: %s\n", strerror(errno));
+    }
+    fclose(fp);
 }
 
 char* http_get_request(url_info *info) {
@@ -242,7 +248,6 @@ char *next_line(char *buff, int len) {
 }
 
 char *read_http_reply(struct http_reply *reply) {
-
     // Let's first isolate the first line of the reply
     char *status_line = next_line(reply->reply_buffer, reply->reply_buffer_length);
     if (status_line == NULL) {
