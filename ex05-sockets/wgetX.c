@@ -119,12 +119,12 @@ int download_page(url_info *info, http_reply *reply) {
      *   Note4: Free the request buffer returned by http_get_request by calling the 'free' function.
      *
      */
-    // int sc; //File descriptor
     // //Inspired from https://linuxhint.com/c-getaddrinfo-function-usage/
     // unsigned char ip[MAX_POSSIBLE_SIZE]= "";
     // inet_ntop(AF_UNSPEC, &addresses->ai_addr->sa_data[2], ip, sizeof(ip));
     // printf("IP address: %s\n", ip);
-    
+
+    int sc; //File descriptor    
     //Source: https://man7.org/linux/man-pages/man3/getaddrinfo.3.html
     struct addrinfo *p;
     for (p = addresses; p!=NULL; p = p->ai_next) {
@@ -182,28 +182,25 @@ int download_page(url_info *info, http_reply *reply) {
      *
      *
      */
-        char rec_buffer[DEFAULT_BUFFER_SIZE];
-        int total_size, buff_size = recv(sc, rec_buffer, DEFAULT_BUFFER_SIZE, 0);
+        reply->reply_buffer = (char *) malloc(DEFAULT_BUFFER_SIZE);
+        int buff_size = recv(sc, reply->reply_buffer, DEFAULT_BUFFER_SIZE, 0);
         if (buff_size < 0) {
             fprintf(stderr, "recv returned error: %s\n", strerror(errno));
             return -6;
         }
-        total_size = buff_size;
-        reply->reply_buffer = (char *) malloc(total_size+1);
-        reply->reply_buffer = rec_buffer;
+        char *next = reply->reply_buffer + buff_size;
 
         while (buff_size > 0) {
-            buff_size = recv(sc, rec_buffer, DEFAULT_BUFFER_SIZE, 0);
+            reply->reply_buffer = (char *) realloc(reply->reply_buffer, (next - reply->reply_buffer + 1) + DEFAULT_BUFFER_SIZE);
+            buff_size = recv(sc, next, DEFAULT_BUFFER_SIZE, 0);
             if (buff_size < 0) {
                 fprintf(stderr, "recv returned error: %s\n", strerror(errno));
                 return -6;
             }
-            reply->reply_buffer = (char *) realloc(reply->reply_buffer, total_size+buff_size+1);
-            reply->reply_buffer+total_size = rec_buffer;
-            total_size += buff_size;
+            next += buff_size;
         }
-        reply->reply_buffer_length = total_size;
-        reply->reply_buffer+total_size = '\0';
+        reply->reply_buffer_length = next - reply->reply_buffer + 1;
+        *next = '\0';
 
         close(rec_sc);
     }
@@ -216,14 +213,14 @@ void write_data(const char *path, const char *data, int len) {
      * To be completed:
      *   Use fopen, fwrite and fclose functions.
      */
-    FILE *file = fopen(path, 'w');
+    FILE *file = fopen(path, "w");
     if (file == NULL) {
         fprintf(stderr, "Could not open file: %s\n", strerror(errno));
     }
     if (fwrite(data , 1 , len , file) < len){
         fprintf(stderr, "Could not write data: %s\n", strerror(errno));
     }
-    fclose(fp);
+    fclose(file);
 }
 
 char* http_get_request(url_info *info) {
