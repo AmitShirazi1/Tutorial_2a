@@ -130,32 +130,34 @@ int download_page(url_info *info, http_reply *reply) {
     struct addrinfo *p;
     for (p = addresses; p!=NULL; p = p->ai_next) {
         sc = socket(p->ai_family, p->ai_socktype, 0);
-        printf("created socket, %d\n", p->ai_socktype);
+        // printf("created socket, %d\n", p->ai_socktype);
         if (sc == -1)
             continue;
         close(sc);
     }
-    printf("somehow I'm here");
+    // printf("somehow I'm here");
     if (p == NULL) { //If no address in the linked list has successfully binded.
         fprintf(stderr, "Could not bind socket\n");
         return -2;
     }
     freeaddrinfo(addresses);
 
-    int rec_sc; //File descriptor
     char *send_buff;
-    while(1) {
-        rec_sc = accept(sc, (struct sockaddr*)NULL ,NULL);
-        send_buff = http_get_request(info);
-        if (write(rec_sc, send_buff, strlen(send_buff)) < 0) {
-            fprintf(stderr, "Could not write: %s\n", strerror(errno));
-            return -4;
-        }
-        if (shutdown(rec_sc, SHUT_WR) < 0) {
-            fprintf(stderr, "Could not shutdown connection: %s\n", strerror(errno));
-            return -5;
-        }
-        free(send_buff);
+    
+    if (connect(sc, (struct sockaddr*)p, sizeof(*p)) != 0){
+        fprintf(stderr, "Could not connect: %s\n", strerror(errno));
+        return -3;
+    }
+    send_buff = http_get_request(info);
+    if (write(rec_sc, send_buff, strlen(send_buff)) < 0) {
+        fprintf(stderr, "Could not write: %s\n", strerror(errno));
+        return -4;
+    }
+    if (shutdown(rec_sc, SHUT_WR) < 0) {
+        fprintf(stderr, "Could not shutdown connection: %s\n", strerror(errno));
+        return -5;
+    }
+    free(send_buff);
     /*
      * To be completed:
      *   Now you will need to read the response from the server.
@@ -177,28 +179,28 @@ int download_page(url_info *info, http_reply *reply) {
      *
      *
      */
-        reply->reply_buffer = (char *) malloc(DEFAULT_BUFFER_SIZE);
-        int buff_size = recv(sc, reply->reply_buffer, DEFAULT_BUFFER_SIZE, 0);
+    reply->reply_buffer = (char *) malloc(DEFAULT_BUFFER_SIZE);
+    int buff_size = recv(sc, reply->reply_buffer, DEFAULT_BUFFER_SIZE, 0);
+    if (buff_size < 0) {
+        fprintf(stderr, "recv returned error: %s\n", strerror(errno));
+        return -6;
+    }
+    char *next = reply->reply_buffer + buff_size;
+
+    while (buff_size > 0) {
+        reply->reply_buffer = (char *) realloc(reply->reply_buffer, (next - reply->reply_buffer + 1) + DEFAULT_BUFFER_SIZE);
+        buff_size = recv(sc, next, DEFAULT_BUFFER_SIZE, 0);
         if (buff_size < 0) {
             fprintf(stderr, "recv returned error: %s\n", strerror(errno));
             return -6;
         }
-        char *next = reply->reply_buffer + buff_size;
-
-        while (buff_size > 0) {
-            reply->reply_buffer = (char *) realloc(reply->reply_buffer, (next - reply->reply_buffer + 1) + DEFAULT_BUFFER_SIZE);
-            buff_size = recv(sc, next, DEFAULT_BUFFER_SIZE, 0);
-            if (buff_size < 0) {
-                fprintf(stderr, "recv returned error: %s\n", strerror(errno));
-                return -6;
-            }
-            next += buff_size;
-        }
-        reply->reply_buffer_length = next - reply->reply_buffer + 1;
-        *next = '\0';
-
-        close(rec_sc);
+        next += buff_size;
     }
+    reply->reply_buffer_length = next - reply->reply_buffer + 1;
+    *next = '\0';
+
+    close(rec_sc);
+
 
     return 0;
 }
