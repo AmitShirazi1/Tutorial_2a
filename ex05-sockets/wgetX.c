@@ -141,7 +141,7 @@ int download_page(url_info *info, http_reply *reply) {
     }
 
     char *send_buff;
-    if (connect(sc, (struct sockaddr*)p, sizeof(*p)) != 0){
+    if (connect(sc, p->ai_addr, p->ai_addrlen) != 0){
         fprintf(stderr, "Could not connect: %s\n", strerror(errno));
         return -3;
     }
