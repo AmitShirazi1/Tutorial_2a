@@ -97,12 +97,12 @@ int download_page(url_info *info, http_reply *reply) {
     
     char port[MAX_POSSIBLE_SIZE];
     snprintf(port, MAX_POSSIBLE_SIZE, "%d", info->port);
-    int is_error = getaddrinfo(info->host, port, &hints, &addresses);
+    int is_error = getaddrinfo(info->host, &(*port), &hints, &addresses);
     if (is_error) {
         fprintf(stderr, "Failed to resolve hostname to IP address");
         return -1;
     }
-    printf("got a linked list: %d\nis there more than one? %s\n", addresses->ai_addr->sa_data[2], addresses->ai_next!=NULL? " y":" n");
+    printf("got a linked list: %d\nis there more than one? %s\n", addresses->ai_addr->sa_data[2], addresses->ai_next!=NULL? "y":"n");
 
 
     /*
@@ -130,32 +130,27 @@ int download_page(url_info *info, http_reply *reply) {
     struct addrinfo *p;
     for (p = addresses; p!=NULL; p = p->ai_next) {
         sc = socket(p->ai_family, p->ai_socktype, 0);
-        // printf("created socket, %d\n", p->ai_socktype);
-        if (sc == -1)
-            continue;
-        close(sc);
+        printf("created socket with ai_socktype %d\n", p->ai_socktype);
+        if (sc >= 0)
+            break;
     }
-    // printf("somehow I'm here");
+    printf("Done 'for'");
     if (p == NULL) { //If no address in the linked list has successfully binded.
-        fprintf(stderr, "Could not bind socket\n");
+        fprintf(stderr, "Could not create socket\n");
         return -2;
     }
-    freeaddrinfo(addresses);
 
     char *send_buff;
-    
     if (connect(sc, (struct sockaddr*)p, sizeof(*p)) != 0){
         fprintf(stderr, "Could not connect: %s\n", strerror(errno));
         return -3;
     }
+    freeaddrinfo(addresses);
+
     send_buff = http_get_request(info);
-    if (write(rec_sc, send_buff, strlen(send_buff)) < 0) {
+    if (write(sc, send_buff, strlen(send_buff)) < 0) {
         fprintf(stderr, "Could not write: %s\n", strerror(errno));
         return -4;
-    }
-    if (shutdown(rec_sc, SHUT_WR) < 0) {
-        fprintf(stderr, "Could not shutdown connection: %s\n", strerror(errno));
-        return -5;
     }
     free(send_buff);
     /*
@@ -199,7 +194,11 @@ int download_page(url_info *info, http_reply *reply) {
     reply->reply_buffer_length = next - reply->reply_buffer + 1;
     *next = '\0';
 
-    close(rec_sc);
+    if (shutdown(sc, SHUT_WR) < 0) {
+        fprintf(stderr, "Could not shutdown connection: %s\n", strerror(errno));
+        return -5;
+    }
+    close(sc);
 
 
     return 0;
