@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     }
 
     //If needed for debug
-    print_url_info(&info);
+    // print_url_info(&info);
 
     // Download the page
     struct http_reply reply;
@@ -102,7 +102,6 @@ int download_page(url_info *info, http_reply *reply) {
         fprintf(stderr, "Failed to resolve hostname to IP address");
         return -1;
     }
-    printf("got a linked list: %d\nis there more than one? %s\n", addresses->ai_addr->sa_data[2], addresses->ai_next!=NULL? "y":"n");
 
 
     /*
@@ -120,21 +119,14 @@ int download_page(url_info *info, http_reply *reply) {
      *   Note4: Free the request buffer returned by http_get_request by calling the 'free' function.
      *
      */
-    // Inspired from https://linuxhint.com/c-getaddrinfo-function-usage/
-    // unsigned char ip[MAX_POSSIBLE_SIZE]= "";
-    // inet_ntop(AF_UNSPEC, &addresses->ai_addr->sa_data[2], ip, sizeof(ip));
-    // printf("IP address: %s\n", ip);
-
     int sc; //File descriptor    
     //Source: https://man7.org/linux/man-pages/man3/getaddrinfo.3.html
     struct addrinfo *p;
     for (p = addresses; p!=NULL; p = p->ai_next) {
         sc = socket(p->ai_family, p->ai_socktype, 0);
-        printf("created socket with ai_socktype %d\n", p->ai_socktype);
         if (sc >= 0)
             break;
     }
-    printf("Done 'for'");
     if (p == NULL) { //If no address in the linked list has successfully binded.
         fprintf(stderr, "Could not create socket\n");
         return -2;
